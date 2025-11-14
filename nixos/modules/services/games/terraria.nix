@@ -26,7 +26,9 @@ let
     upnp = if cfg.noUPnP then 0 else 1;
   }
   // cfg.extraSettings;
-  serverConfigString = lib.generators.toKeyValue (lib.filterAttrsRecursive (n: v: v != null) serverConfig);
+  serverConfigString = lib.generators.toINIWithGlobalSection {} {
+    globalSection = (lib.filterAttrsRecursive (n: v: v != null) serverConfig);
+  };
   serverConfigFile = pkgs.writeText "config.ini" serverConfigString;
 
   tmuxCmd = "${lib.getExe pkgs.tmux} -S ${lib.escapeShellArg cfg.dataDir}/terraria.sock";

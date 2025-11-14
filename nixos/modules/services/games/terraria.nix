@@ -13,21 +13,21 @@ let
     medium = 2;
     large = 3;
   };
-  valFlag =
-    name: val:
-    lib.optionalString (val != null) "-${name} \"${lib.escape [ "\\" "\"" ] (toString val)}\"";
-  boolFlag = name: val: lib.optionalString val "-${name}";
-  flags = [
-    (valFlag "port" cfg.port)
-    (valFlag "maxPlayers" cfg.maxPlayers)
-    (valFlag "password" cfg.password)
-    (valFlag "motd" cfg.messageOfTheDay)
-    (valFlag "world" cfg.worldPath)
-    (valFlag "autocreate" (builtins.getAttr cfg.autoCreatedWorldSize worldSizeMap))
-    (valFlag "banlist" cfg.banListPath)
-    (boolFlag "secure" cfg.secure)
-    (boolFlag "noupnp" cfg.noUPnP)
-  ];
+
+  serverConfig = {
+    world = cfg.worldPath;
+    autocreate = (builtins.getAttr cfg.autoCreatedWorldSize worldSizeMap);
+    maxplayers = cfg.maxPlayers;
+    port = cfg.port;
+    password = cfg.password;
+    motd = config.motd;
+    banlist = cfg.banListPath;
+    secure = if cfg.secure then 1 else 0;
+    upnp = if cfg.noUPnP then 0 else 1;
+  }
+  // cfg.extraSettings;
+  serverConfigString = lib.generators.toKeyValue (lib.filterAttrsRecursive (n: v: v != null) serverConfig);
+  serverConfigFile = pkgs.writeText "config.ini" serverConfigString;
 
   tmuxCmd = "${lib.getExe pkgs.tmux} -S ${lib.escapeShellArg cfg.dataDir}/terraria.sock";
 
@@ -151,6 +151,18 @@ in
         example = "/srv/terraria";
         description = "Path to variable state data directory for terraria.";
       };
+
+      extraSettings = lib.mkOption {
+        type = lib.types.attrs;
+        default = { };
+        example = {
+          difficulty = 3;
+          journeypermission_godmode = 0;
+        };
+        description = ''
+          Extra game configuration that will go into a config.ini and passed to -config
+        '';
+      };
     };
   };
 
@@ -178,7 +190,7 @@ in
         Type = "forking";
         GuessMainPID = true;
         UMask = 7;
-        ExecStart = "${tmuxCmd} new -d ${pkgs.terraria-server}/bin/TerrariaServer ${lib.concatStringsSep " " flags}";
+        ExecStart = "${tmuxCmd} new -d ${pkgs.terraria-server}/bin/TerrariaServer -config ${serverConfigFile}";
         ExecStop = "${stopScript} $MAINPID";
       };
     };

@@ -20,7 +20,7 @@ let
     maxplayers = cfg.maxPlayers;
     port = cfg.port;
     password = cfg.password;
-    motd = cfg.motd;
+    motd = cfg.messageOfTheDay;
     banlist = cfg.banListPath;
     secure = if cfg.secure then 1 else 0;
     upnp = if cfg.noUPnP then 0 else 1;
